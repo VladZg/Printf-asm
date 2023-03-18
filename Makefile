@@ -8,7 +8,6 @@ assemble:
 link:
 	ld -s -o $(TARGET) $(TARGET).o
 
-
 run:
 	$(TARGET)
 
