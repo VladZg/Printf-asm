@@ -1,17 +1,31 @@
 section .text
 global _start
 
-_start: mov rax, 0x01
-        mov rdi, 1
-        mov rsi, Msg
+_start: mov rsi, Msg
         mov rdx, MsgLen
-        syscall
+        call _printf
 
         mov rax, 0x3C
         xor rdi, rdi
         syscall
 
+;------------------------------------------------
+; _printf - simple analog of standart printf
+;
+;------------------------------------------------
+; ENTRY:    rsi - address of string
+;           rdx - length of string
+; EXIT:     None
+; EXPECTS:  None
+; DESTROYS: rax, rdi
+;------------------------------------------------
+_printf:        mov rax, 0x01
+                mov rdi, 1
+                syscall
+                ret
+;------------------------------------------------
+
 section .data
 
-Msg:    db  "Hello, World!", 0x0A
+Msg:    db  "Hello, here is my own printf!", 0x0A
 MsgLen: equ $ - Msg
