@@ -5,4 +5,5 @@
 /Printf
 /*.o
 /*.lst
-/test
+/c_test
+/asm_test
