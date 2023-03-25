@@ -1,8 +1,7 @@
 bits    64                          ; x86-64 processor used
-global _printf, _assert
+global _printf, _assert, _puts
 
 section .text
-
 ;------------------------------------------------
 ; _printf - simple analog of standart printf
 ;------------------------------------------------
@@ -37,98 +36,196 @@ _printf:
 ; DESTROYS: rax, rbx, rdi
 ;------------------------------------------------
 __printf:
+    mov rbp, rsp
     xor rbx, rbx            ; rbx = 0
     xor rax, rax            ; rax = 0
     mov rsi, rdi            ; rsi = rdi
     mov rdi, _printf_buf
     cld                     ; iterator increasing mode
-next:
+.next_symbol:
     lodsb                   ; al = ds:[esi++]
     cmp al, "%"
-    je process_arg
+    je .process_arg
     stosb                   ; ds:[edi++] = al
     cmp al, 0
-    je print_buf
-    jmp next
+    je .buf_print
+    jmp .next_symbol
 
-process_arg:
+.process_arg:
     lodsb                   ; al = ds:[esi++]
     cmp al, '%'             ; if (al == '%') putc('%')
-    je _printf_perc
+    je ._printf_perc
 
                             ; switch(al)
     cmp al, 'b'             ; if (al < 'b') default;
-    jb _printf_def
+    jb ._printf_def
 
     cmp al, 'x'             ; if (al > 'x') default;
-    ja _printf_def
+    ja ._printf_def
 
     inc rbx                 ; rbx++ <-- number of that format argument
 
     sub al, 'b'                         ; index = al - 'b'
     jmp [_printf_swtch_tbl + rax * 8]   ; switch_table[index]
 
-_printf_perc:
-    mov al, '%'     ; al = '%'
-    stosb           ; ds:[edi++] = al
-    jmp next
+._printf_perc:
+    mov al, '%'         ; al = '%'
+    stosb               ; ds:[edi++] = al
+    jmp .next_symbol
 
-_printf_bin:
-    jmp next
+._printf_bin:
+    jmp .next_symbol
 
-_printf_char:
-    mov rax, [rsp + rbx * 8]
+._printf_char:
+    mov rax, [rbp + rbx * 8]    ; char arhument
     stosb                       ; ds:[edi++] = al
-    jmp next
+    jmp .next_symbol
 
-_printf_dec:
-    jmp next
+._printf_dec:
+    jmp .next_symbol
 
-_printf_oct:
-    jmp next
+._printf_oct:
+    jmp .next_symbol
 
-_printf_str:
-    jmp next
+._printf_str:
+    push rsi
+    mov rsi, [rbp + rbx * 8]    ; address of string argument
+    call _strlen                ; ax = strlen(str)
+    mov rcx, rax                ; strlen
+    call _memcpy
+    pop rsi
+    jmp .next_symbol
 
-_printf_hex:
-    jmp next
+._printf_hex:
+    jmp .next_symbol
 
-_printf_def:
+._printf_def:
     ; call _printf_arg_error
     call _assert
-    jmp next
+    jmp .next_symbol
 
-_printf_arg_error:
+._printf_arg_error:
 
-print_buf:
-    mov rax, 0x01               ; printf function of syscall
-    mov rdx, rdi
-    sub rdx, _printf_buf        ; length of buf
+.buf_print:
     mov rsi, _printf_buf        ; address of buf
-    mov rdi, 1                  ; stream of output
-    syscall
-
+    call buf_print
     ret
+;------------------------------------------------
+
+;------------------------------------------------
+; buf_print - prints buffer of printf function in stdout
+;------------------------------------------------
+; ENTRY:    rdi - address of string
+; EXIT:     None
+; EXPECTS:  None
+; DESTROYS: rax, rbx, rdi
+;------------------------------------------------
+_puts:
+    mov rsi, rdi            ; rsi = rdi
+    mov rdi, _puts_buf
+    cld                     ; iterator increasing mode
+.next_symbol:
+    lodsb                   ; al = ds:[esi++]
+    cmp al, 0               ; al == 0
+    je .buf_print
+    stosb                   ; ds:[edi++] = al
+    jmp .next_symbol
+
+.buf_print:
+    mov al, 10                  ; al = '\n'
+    stosb                       ; ds:[edi++] = al
+    mov al, 0                   ; al = '\0'
+    stosb                       ; ds:[edi++] = al
+    mov rsi, _puts_buf          ; address of buf
+    call buf_print
+    ret
+;------------------------------------------------
+
+;------------------------------------------------
+; buf_print - prints buffer of printf function in stdout
+;------------------------------------------------
+; ENTRY:    rsi - address of buffer to print
+;           rdi - address of last symbol of buffer
+; EXIT:     None
+; EXPECTS:  None
+; DESTROYS: rax, rsi, rdi
+;------------------------------------------------
+buf_print:
+    mov rax, 0x01   ; fprintf function of syscall
+    mov rdx, rdi
+    sub rdx, rsi    ; length of buf
+    mov rdi, 1      ; stdout stream of output
+    syscall
+    ret
+;------------------------------------------------
+
+;------------------------------------------------
+; _strlen - strlen C analog, counts length of a string
+;------------------------------------------------
+; ENTRY:    rsi - address of string buffer
+; EXIT:     rax - string length
+; EXPECTS:  None
+; DESTROYS: rax
+;------------------------------------------------
+_strlen:
+    push rsi
+
+.next_symbol:
+    cmp byte [rsi], 0   ; str[i] == 0
+    je .exit_strlen
+    inc rsi
+    jmp .next_symbol
+
+.exit_strlen:
+    mov rax, rsi
+    pop rsi
+    sub rax, rsi
+	ret
+;------------------------------------------------
+
+;------------------------------------------------
+; _memcpy - memcpy C analog, copies from source to dest
+;------------------------------------------------
+; ENTRY:    rsi - address of source buffer
+;           rdi - address of destination buffer
+;           rcx - numner of copying symbols
+; EXIT:     rdi - address of the symbol after last copied
+; EXPECTS:  None
+; DESTROYS: rdx, rsi
+;------------------------------------------------
+_memcpy:
+	cmp rcx, 0
+	jbe .exit_memcpy
+
+.next_symbol:           ; while (rcx--) {
+    movsb               ; ds:[edi++] = ds:[esi++]
+    loop .next_symbol   ; }
+
+.exit_memcpy:
+	ret
 ;------------------------------------------------
 
 section .rodata                         ; section of read-obly data
 
-_printf_swtch_tbl:                      ; jump switch-table for _printf
-                                        ; '%' = 37
-                dq  _printf_bin         ; 'b' = 98
-                dq  _printf_char        ; 'c' = 99
-                dq  _printf_dec         ; 'd' = 100
-    times  (10) dq  _printf_def         ; default case (x10)
-                dq  _printf_oct         ; 'o' = 111
-    times  (3)  dq  _printf_def         ; default case (x3)
-                dq  _printf_str         ; 's' = 115
-    times  (4)  dq  _printf_def         ; default case (x4)
-                dq  _printf_hex         ; 'x' = 120
+_printf_swtch_tbl:                          ; jump switch-table for _printf
+                                            ; '%' = 37
+                dq  __printf._printf_bin     ; 'b' = 98
+                dq  __printf._printf_char    ; 'c' = 99
+                dq  __printf._printf_dec     ; 'd' = 100
+    times  (10) dq  __printf._printf_def     ; default case (x10)
+                dq  __printf._printf_oct     ; 'o' = 111
+    times  (3)  dq  __printf._printf_def     ; default case (x3)
+                dq  __printf._printf_str     ; 's' = 115
+    times  (4)  dq  __printf._printf_def     ; default case (x4)
+                dq  __printf._printf_hex     ; 'x' = 120
 
 section .bss                            ; section of non-initialized data
 
 _printf_buf_size    equ 1024            ; size of _printf buffer
 _printf_buf resb    _printf_buf_size    ; _printf buffer
+
+_puts_buf_size          equ 1024
+_puts_buf       resb    _puts_buf_size
 
 _printf_args_buf    resb    256         ; buffer for arguments
 

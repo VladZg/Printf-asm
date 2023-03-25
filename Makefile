@@ -5,6 +5,7 @@ all: assemble link # run
 assemble:	# nasm -f elf64 -l $(TARGET).lst $(TARGET).s
 	@nasm -f elf64 asm_test.s -l asm_test.lst
 	@nasm -f elf64 _printf.s -l _printf.lst
+	@gcc -S c_test.c -o c_test.s
 
 link:		# ld -s -o $(TARGET) $(TARGET).o
 	@gcc -no-pie -s _printf.o asm_test.o -o asm_test
