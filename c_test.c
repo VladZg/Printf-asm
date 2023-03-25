@@ -5,9 +5,9 @@ extern int _strlen(const char*);
 
 int main()
 {
-    _printf("_printf test on C%c and %x\n", '!', 0xA7);
-    printf("printf test on C%c and %x\n", '!', 0xA7);
-    _puts("_puts test on C");
+    _printf("_printf test on C%c and %x %o %b\n", '!', 0xB9F, 14, 13);
+    printf("printf test on C%c and %x %o %b\n", '!',  0xB9F, 14, 13);
+    // _puts("_puts test on C");
     // printf("_strlen test on C: %d\n", _strlen("aboba"));
 
     return 1;

@@ -1,5 +1,5 @@
-bits    64                                  ; x86-64 processor used
-global _puts, _memcpy, _strlen, buf_print
+bits    64                                                  ; x86-64 processor used
+global _puts, _memcpy, _strlen, buf_print, _memcpy_reversed
 
 section .text
 ;------------------------------------------------
@@ -92,6 +92,29 @@ _memcpy:
     loop .next_symbol   ; }
 
 .exit_memcpy:
+	ret
+;------------------------------------------------
+
+;------------------------------------------------
+; _memcpy_reversed - reversed memcpy, copies from reversed source to dest
+;------------------------------------------------
+; ENTRY:    rsi - address of the end of source buffer
+;           rdi - address of destination buffer
+;           rcx - number of copying symbols
+; EXIT:     rdi - address of the symbol after last copied
+; EXPECTS:  None
+; DESTROYS: rdx, rsi
+;------------------------------------------------
+_memcpy_reversed:
+	cmp rcx, 0
+	jbe .exit_memcpy_reversed
+
+.next_symbol:           ; while (rcx--) {
+    movsb               ; ds:[edi++] = ds:[esi++]
+    sub rsi, 2          ; rsi -= 2 (reversed order)
+    loop .next_symbol   ; }
+
+.exit_memcpy_reversed:
 	ret
 ;------------------------------------------------
 

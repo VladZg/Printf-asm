@@ -5,6 +5,7 @@ section .text
 
 main:   push rbp
         mov rbp, rsp
+        mov rcx, hex_num
         mov rdi, fmt
         mov rsi, 'w'
         mov rdx, orig_msg
@@ -14,6 +15,7 @@ main:   push rbp
 
         push rbp
         mov rbp, rsp
+        mov rcx, hex_num
         mov rdi, fmt
         mov rsi, 'w'
         mov rdx, own_msg
@@ -37,9 +39,10 @@ main:   push rbp
 
 section .data
 
-fmt:            db  "%c %s!", 10, 0
+fmt:            db  "%c %s %x!", 10, 0
 orig_msg:       db  "printf test on asm", 0
 own_msg:        db  "_printf test on asm", 0
 puts_str:       db  "string for puts", 0
 _puts_str:      db  "string for _puts", 0
 str:            db  "nakonecto stroka...", 0
+hex_num         equ 0xF9B

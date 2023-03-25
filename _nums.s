@@ -1,16 +1,17 @@
 bits    64                                      ; x86-64 processor used
-global _i2hex, _i2oct, _i2bin, _i2quat, i2dec
-extern _memcpy
+global _i2hex, _i2oct, _i2bin, _i2quat, _i2dec
+extern _memcpy, _memcpy_reversed
 
 section .text
 ;------------------------------------------------
 ; _i2a - converting num from int to str format
 ;------------------------------------------------
-; ENTRY:    ebx - int number to convert from
+; ENTRY:    rdx - int number to convert from
+;           rsi - address of source buffer
 ;           cl - base of converting: 2^c
-; EXIT:     r13 - address of buffer with str
+; EXIT:
 ; EXPECTS:  None
-; DESTROYS: r11, rbx
+; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2a:
     push rsi
@@ -20,34 +21,36 @@ _i2a:
 
     mov r11, 1
     shl r11, cl
-    sub r11, 1          ; mask for % (mod 2^cl)
+    dec r11                 ; mask for % (mod 2^cl)
 
     cld
 .next_symbol:
-    mov eax, ebx
+    mov rax, rdx
     and rax, r11
-    mov al, hex_lttrs[rbx]
+    mov al, hex_lttrs[rax]
     stosb                   ; es:[edi++] = al
-    shr ebx, cl             ; ebx /= 2^cl
-    cmp ebx, 0
+    shr rdx, cl             ; ebx /= 2^cl
+    cmp rdx, 0
     jne .next_symbol
 
     mov rcx, rdi
-    sub rcx, nums_buf
-    pop rdi
-    mov rsi, nums_buf
-    call _memcpy
+    sub rcx, nums_buf       ; length of num in buf
+    mov rsi, rdi
+    dec rsi                 ; address of end of num buf
+    pop rdi                 ; restore rdi value
+    call _memcpy_reversed
     pop rsi
     ret
 ;------------------------------------------------
 
 ;------------------------------------------------
-; _i2dec -
+; _i2dec - convers num from int to decimal str format
 ;------------------------------------------------
-; ENTRY:
+; ENTRY:    rdx - int number to convert from
+;           rsi - address of source buffer
 ; EXIT:
 ; EXPECTS:  None
-; DESTROYS:
+; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2dec:
 
@@ -55,12 +58,13 @@ _i2dec:
 ;------------------------------------------------
 
 ;------------------------------------------------
-; _i2oct -
+; _i2oct - convers num from int to octal str format
 ;------------------------------------------------
-; ENTRY:
+; ENTRY:    rdx - int number to convert from
+;           rsi - address of source buffer
 ; EXIT:
 ; EXPECTS:  None
-; DESTROYS:
+; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2oct:
     mov rcx, 3
@@ -69,12 +73,13 @@ _i2oct:
 ;------------------------------------------------
 
 ;------------------------------------------------
-; _i2bin -
+; _i2bin - convers num from int to binar str format
 ;------------------------------------------------
-; ENTRY:
+; ENTRY:    rdx - int number to convert from
+;           rsi - address of source buffer
 ; EXIT:
 ; EXPECTS:  None
-; DESTROYS:
+; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2bin:
     mov rcx, 1
@@ -83,27 +88,28 @@ _i2bin:
 ;------------------------------------------------
 
 ;------------------------------------------------
-; _i2quat -
+; _i2quat - convers num from int to quater str format
 ;------------------------------------------------
-; ENTRY:
+; ENTRY:    rdx - int number to convert from
+;           rsi - address of source buffer
 ; EXIT:
 ; EXPECTS:  None
-; DESTROYS:
+; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
-_i2bin:
+_i2quat:
     mov rcx, 2
     call _i2a
     ret
 ;------------------------------------------------
 
 ;------------------------------------------------
-; _i2hex -
+; _i2hex - convers num from int to hex str format
 ;------------------------------------------------
-; ENTRY:    ebx = int number
-; EXIT:     r13 - address of buffer with hex num
-;           rcx - length of number in str format
+; ENTRY:    rdx - int number to convert from
+;           rsi - address of source buffer
+; EXIT:
 ; EXPECTS:  None
-; DESTROYS: rcx
+; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2hex:
     mov rcx, 4

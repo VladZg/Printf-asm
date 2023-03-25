@@ -1,7 +1,7 @@
 bits    64                                  ; x86-64 processor used
 global _printf, _assert
 extern _puts, _memcpy, _strlen, buf_print
-extern _i2hex, _i2oct, _i2bin, _i2quat, i2dec
+extern _i2hex, _i2oct, _i2bin, _i2quat, _i2dec
 
 section .text
 ;------------------------------------------------
@@ -76,6 +76,8 @@ __printf:
     jmp .next_symbol
 
 ._printf_bin:
+    mov rdx, [rbp + rbx * 8]
+    call _i2bin
     jmp .next_symbol
 
 ._printf_char:
@@ -84,9 +86,13 @@ __printf:
     jmp .next_symbol
 
 ._printf_dec:
+    mov rdx, [rbp + rbx * 8]
+    call _i2dec
     jmp .next_symbol
 
 ._printf_oct:
+    mov rdx, [rbp + rbx * 8]
+    call _i2oct
     jmp .next_symbol
 
 ._printf_str:
@@ -99,10 +105,8 @@ __printf:
     jmp .next_symbol
 
 ._printf_hex:
-    mov rax, rbx
-    mov rbx, [rbp + rbx * 8]
+    mov rdx, [rbp + rbx * 8]
     call _i2hex
-    mov rbx, rax
     jmp .next_symbol
 
 ._printf_def:
