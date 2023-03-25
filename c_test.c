@@ -13,7 +13,8 @@ int main()
     char name[]     = "Vlad" ;
 
     printf( " printf test on C%c some nums: %b %x %o %d %d and my name is still %s\n", '!', bin_num, hex_num, oct_num, dec_pos_num, dec_neg_num, name);
-    _printf("_printf test on C%c some nums: %k %b %x %o %d %d and my name is still %s\n", '!', bin_num, hex_num, oct_num, dec_pos_num, dec_neg_num, name);
+    _printf("_printf test on C%c some nums: %k %b %x %o %d %d and my name is still %s\n"
+            "%d %s %x %d%%%c%b\n", '!', bin_num, hex_num, oct_num, dec_pos_num, dec_neg_num, name, -1, "love", 3802, 100, 33, 127);
     printf( " printf test on C%c some nums: %b %x %o %d %d and my name is still %s\n", '!', bin_num, hex_num, oct_num, dec_pos_num, dec_neg_num, name);
 
     return 1;

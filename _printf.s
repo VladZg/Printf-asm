@@ -1,17 +1,18 @@
-bits    64                                  ; x86-64 processor used
+bits    64                                  ; x86-64 processor instruction set used
 global _printf, _assert
 extern _puts, _memcpy, _strlen, buf_print
 extern _i2hex, _i2oct, _i2bin, _i2quat, _i2dec
+extern printf
 
 section .text
 ;------------------------------------------------
 ; _printf - simple analog of standart printf
 ;------------------------------------------------
 ; ENTRY:    rdi - address of format string
-;           arguments in cdecl format
+;           arguments of printf in cdecl format
 ; EXIT:     None
 ; EXPECTS:  None
-; DESTROYS: rax, rbx, rdi, r10
+; DESTROYS: r10
 ;------------------------------------------------
 _printf:
             pop r10         ; saving ret addr
@@ -22,7 +23,7 @@ _printf:
 	        push rdx        ; saving 2 argument
 	        push rsi        ; saving 1 argument
 
-            push rbp
+            push rbp        ; saving other args
             mov rbp, rsp
             push rax
             push rbx
@@ -35,14 +36,20 @@ _printf:
             pop rax
             pop rbp
 
-            ; pop rsi
-            ; pop rdx
-            ; pop rcx
-            ; pop r8
-            ; pop r9
-            add rsp, 8*5    ; pop all reg params
+            pop rsi
+            pop rdx
+            pop rcx
+            pop r8
+            pop r9
 
-            push r10        ; putting ret addr in stack
+            push r10                ; putting ret addr in stack
+            push rbp                ;
+            mov rbp, rsp            ;
+            add rbp, 8              ;
+            call printf             ; printf(fmt, msg)
+            pop rbp
+            ; add rsp, 8*5    ; restoring rsp (poping _printfs params)
+
             ret
 ;------------------------------------------------
 
@@ -66,10 +73,10 @@ __printf:
     cmp al, "%"
     je .process_arg
     stosb                   ; ds:[edi++] = al
-    cmp al, 0
+    cmp al, 0               ; al == 0
     je .buf_print
-    cmp rdi, _printf_buf_end
-    jae .reset_buf
+;    cmp rdi, _printf_buf_end
+;    jae .reset_buf
     jmp .next_symbol
 
 .reset_buf:
@@ -88,10 +95,9 @@ __printf:
     cmp al, 'x'             ; if (al > 'x') default;
     ja ._printf_def
 
-    inc rbx                 ; rbx++ <-- number of that format argument
+    inc rbx                     ; rbx++ <-- number of that format argument
 
-    sub al, 'b'                         ; index = al - 'b'
-    jmp _printf_swtch_tbl[rax * 8]      ; switch_table[index]
+    jmp _printf_swtch_tbl[(rax - 'b') * 8]      ; switch_table[index]
 
 ._printf_perc:                  ; %%
     mov al, '%'                 ; al = '%'
@@ -120,8 +126,12 @@ __printf:
 
 ._printf_str:                   ; %s
     push rsi                    ; saving rsi
+    ; mov r9, _printf_buf_end
+    ; sub r9, rdi               ; length of empty _printf_buf
     mov rsi, [rbp + rbx * 8]    ; address of string argument
     call _strlen                ; ax = strlen(str)
+    ; cmp eax, r9
+    ; ja .reset_buf             ; if (ax > len) reset_buf()
     mov rcx, rax                ; strlen
     call _memcpy                ; copying str to _printf_buf
     pop rsi                     ; restoring rsi
@@ -201,5 +211,5 @@ _assert:
         ret
 ;------------------------------------------------
 section .rodata   ; assert read-only data
-ass_msg:        db  "test like an assert...", 0x0A
+ass_msg:        db  "assert message... something is wrong, isn't it?", 0x0A
 ass_msg_len:    equ $ - ass_msg

@@ -27,7 +27,7 @@ _i2a:
 .next_symbol:
     mov rax, rdx
     and rax, r11
-    mov al, hex_lttrs[rax]
+    mov al, num_lttrs[rax]
     stosb                   ; es:[edi++] = al
     shr rdx, cl             ; ebx /= 2^cl
     cmp rdx, 0
@@ -53,7 +53,7 @@ _i2a:
 ; DESTROYS: rax, rdx, r9, r11
 ;------------------------------------------------
 _i2dec:
-    push rsi
+    push rsi                ; saving pointer to fmt string
 
     cmp edx, 0
     jge .process_num
@@ -64,14 +64,14 @@ _i2dec:
 
 .process_num:
     push rdi
-    mov r9, 10
-    mov rax, rdx
-    mov rdi, nums_buf
+    mov r9, 10              ; base of converting system
+    mov rax, rdx            ; rdx = rax
+    mov rdi, nums_buf       ; address of nums buffer
 
 .next_symbol:
-    xor rdx, rdx           ; rdx = 0
-    div r9                 ; rax /= 10
-    add dl, '0'
+    xor rdx, rdx            ; rdx = 0
+    div r9                  ; rax /= 10, rdx = rax % 10
+    add dl, '0'             ; converting number to symbol
     mov [rdi], dl
     inc rdi
     cmp rax, 0
@@ -82,9 +82,9 @@ _i2dec:
     sub rcx, nums_buf       ; length of num in buf
     mov rsi, rdi
     dec rsi                 ; address of end of num buf
-    pop rdi                 ; restore rdi value
-    call _memcpy_reversed
-    pop rsi
+    pop rdi                 ; restore pointer  to _printf buffer
+    call _memcpy_reversed   ; copying num buffer to the end of _printf buffer
+    pop rsi                 ; restoring pointer to fmt string
     ret
 ;------------------------------------------------
 
@@ -98,8 +98,8 @@ _i2dec:
 ; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2oct:
-    mov rcx, 3
-    call _i2a
+    mov rcx, 3      ; base = 2^3 = 8
+    call _i2a       ; convert integer to str in oct system
     ret
 ;------------------------------------------------
 
@@ -113,8 +113,8 @@ _i2oct:
 ; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2bin:
-    mov rcx, 1
-    call _i2a
+    mov rcx, 1      ; base = 2^1 = 2
+    call _i2a       ; convert integer to str in bin system
     ret
 ;------------------------------------------------
 
@@ -128,8 +128,8 @@ _i2bin:
 ; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2quat:
-    mov rcx, 2
-    call _i2a
+    mov rcx, 2      ; base = 2^2 = 4
+    call _i2a       ; convert integer to str in quat system
     ret
 ;------------------------------------------------
 
@@ -143,13 +143,13 @@ _i2quat:
 ; DESTROYS: rax, rdx, r11
 ;------------------------------------------------
 _i2hex:
-    mov rcx, 4
-    call _i2a
+    mov rcx, 4      ; base = 2^4 = 16
+    call _i2a       ; convert integer to str in hex system
     ret
 ;------------------------------------------------
 
 section .rodata
-hex_lttrs:  db  "0123456789abcdef"
+num_lttrs:  db  "0123456789abcdef"
 
 section .bss
 nums_buf_size    equ 32             ; size of nums buffer

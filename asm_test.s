@@ -3,26 +3,26 @@ global main
 
 section .text
 
-main:   push rbp
-        mov rbp, rsp
-        mov r9d, oct_num
-	mov r8d, dec_pos_num
-        mov rcx, hex_num
-        mov rdi, fmt
-        mov rsi, 's'
-        mov rdx, orig_msg
-        xor eax, eax
+main:   push rbp                ;
+        mov rbp, rsp            ;
+        mov r9d, oct_num        ;
+	mov r8d, dec_pos_num    ;
+        mov rcx, hex_num        ;
+        mov rdi, fmt            ;
+        mov rsi, 's'            ;
+        mov rdx, orig_msg       ;
+        xor eax, eax            ;
         call printf             ; printf(fmt, msg)
         pop rbp
 
-        push rbp
-        mov rbp, rsp
-        mov r9d, oct_num
-	mov r8d, dec_pos_num
-        mov rcx, hex_num
-        mov rdi, fmt
-        mov rsi, 's'
-        mov rdx, own_msg
+        push rbp                ;
+        mov rbp, rsp            ;
+        mov r9d, oct_num        ;
+	mov r8d, dec_pos_num    ;
+        mov rcx, hex_num        ;
+        mov rdi, fmt            ;
+        mov rsi, 's'            ;
+        mov rdx, own_msg        ;
         call _printf            ; _printf(fmt, msg)
         pop rbp
 
