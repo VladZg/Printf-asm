@@ -40,7 +40,7 @@ main:   push rbp
 section .data
 
 fmt:            db  "%c %s %x!", 10, 0
-orig_msg:       db  "printf test on asm", 0
+orig_msg:       db  " printf test on asm", 0
 own_msg:        db  "_printf test on asm", 0
 puts_str:       db  "string for puts", 0
 _puts_str:      db  "string for _puts", 0

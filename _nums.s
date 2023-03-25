@@ -46,14 +46,45 @@ _i2a:
 ;------------------------------------------------
 ; _i2dec - convers num from int to decimal str format
 ;------------------------------------------------
-; ENTRY:    rdx - int number to convert from
+; ENTRY:    edx - int number to convert from
 ;           rsi - address of source buffer
 ; EXIT:
 ; EXPECTS:  None
-; DESTROYS: rax, rdx, r11
+; DESTROYS: rax, rdx, r9, r11
 ;------------------------------------------------
 _i2dec:
+    push rsi
 
+    cmp edx, 0
+    jge .process_num
+
+    mov al, '-'
+    stosb                   ; es:[edi++] = al
+    neg edx
+
+.process_num:
+    push rdi
+    mov r9, 10
+    mov rax, rdx
+    mov rdi, nums_buf
+
+.next_symbol:
+    xor rdx, rdx           ; rdx = 0
+    div r9                 ; rax /= 10
+    add dl, '0'
+    mov [rdi], dl
+    inc rdi
+    cmp rax, 0
+    jne .next_symbol
+
+.cpy_buf:
+    mov rcx, rdi
+    sub rcx, nums_buf       ; length of num in buf
+    mov rsi, rdi
+    dec rsi                 ; address of end of num buf
+    pop rdi                 ; restore rdi value
+    call _memcpy_reversed
+    pop rsi
     ret
 ;------------------------------------------------
 

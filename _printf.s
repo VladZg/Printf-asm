@@ -21,8 +21,21 @@ _printf:
 	        push rcx        ; saving 3 argument
 	        push rdx        ; saving 2 argument
 	        push rsi        ; saving 1 argument
+
+            ;push rbp
+            ;mov rbp, rsp
+            ;add rbp, 8
+
             call __printf   ; __printf(fmt, args)
-            add rsp, 8*5    ; pop all reg params
+
+            ;pop rbp
+
+            pop rsi
+            pop rdx
+            pop rcx
+            pop r8
+            pop r9
+            ; add rsp, 8*5    ; pop all reg params
 
             push r10        ; putting ret addr in stack
             ret

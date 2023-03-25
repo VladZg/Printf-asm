@@ -5,10 +5,12 @@ extern int _strlen(const char*);
 
 int main()
 {
-    _printf("_printf test on C%c and %x %o %b\n", '!', 0xB9F, 14, 13);
-    printf("printf test on C%c and %x %o %b\n", '!',  0xB9F, 14, 13);
-    // _puts("_puts test on C");
-    // printf("_strlen test on C: %d\n", _strlen("aboba"));
+    // int hex_num = 0xB9F;
+    // int oct_num = 14;
+    // char name[] = "Vlad";
+
+    printf( " printf test on C%c some nums: %x %o %d %d. My name is still %s\n", '!', 0xB9F, 14, -10, 134, "Vlad");
+    _printf("_printf test on C%c some nums: %x %o %d %d. My name is still %s\n", '!', 0xB9F, 14, -10, 134, "Vlad");
 
     return 1;
 }
