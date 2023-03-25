@@ -22,13 +22,18 @@ _printf:
 	        push rdx        ; saving 2 argument
 	        push rsi        ; saving 1 argument
 
-            ;push rbp
-            ;mov rbp, rsp
-            ;add rbp, 8
+            push rbp
+            mov rbp, rsp
+            push rax
+            push rbx
+            push rdi
 
             call __printf   ; __printf(fmt, args)
 
-            ;pop rbp
+            pop rdi
+            pop rbx
+            pop rax
+            pop rbp
 
             pop rsi
             pop rdx
@@ -51,7 +56,7 @@ _printf:
 ; DESTROYS: rax, rbx, rdi
 ;------------------------------------------------
 __printf:
-    mov rbp, rsp
+    ; mov rbp, rsp
     xor rbx, rbx            ; rbx = 0
     xor rax, rax            ; rax = 0
     mov rsi, rdi            ; rsi = rdi
@@ -64,6 +69,12 @@ __printf:
     stosb                   ; ds:[edi++] = al
     cmp al, 0
     je .buf_print
+;    cmp rdi, _printf_buf_end
+;    jae .reset_buf
+    jmp .next_symbol
+
+.reset_buf:
+    call reset_buf
     jmp .next_symbol
 
 .process_arg:
@@ -81,7 +92,7 @@ __printf:
     inc rbx                 ; rbx++ <-- number of that format argument
 
     sub al, 'b'                         ; index = al - 'b'
-    jmp [_printf_swtch_tbl + rax * 8]   ; switch_table[index]
+    jmp _printf_swtch_tbl[rax * 8]      ; switch_table[index]
 
 ._printf_perc:
     mov al, '%'         ; al = '%'
@@ -123,15 +134,30 @@ __printf:
     jmp .next_symbol
 
 ._printf_def:
-    ; call _printf_arg_error
+    ;sub rsi, 2
+    ;movsb
+    ;movsb
     call _assert
     jmp .next_symbol
-
-._printf_arg_error:
 
 .buf_print:
     mov rsi, _printf_buf        ; address of buf
     call buf_print
+    ret
+;------------------------------------------------
+
+;------------------------------------------------
+; reset_buf - prints _printf buffer and reset it
+;------------------------------------------------
+; ENTRY:    rdi - address of the end of buf
+; EXIT:     rdi - address of the _printf_buf
+; EXPECTS:  None
+; DESTROYS: rax, rsi, rdi
+;------------------------------------------------
+reset_buf:
+    mov rsi, _printf_buf
+    call buf_print
+    mov rdi, _printf_buf
     ret
 ;------------------------------------------------
 
@@ -152,6 +178,7 @@ _printf_swtch_tbl:                          ; jump switch-table for _printf
 section .bss                            ; section of non-initialized data
 _printf_buf_size    equ 1024            ; size of _printf buffer
 _printf_buf resb    _printf_buf_size    ; _printf buffer
+_printf_buf_end     equ $ - 20
 
 section .text
 ;------------------------------------------------
