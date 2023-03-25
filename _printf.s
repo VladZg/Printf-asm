@@ -35,12 +35,12 @@ _printf:
             pop rax
             pop rbp
 
-            pop rsi
-            pop rdx
-            pop rcx
-            pop r8
-            pop r9
-            ; add rsp, 8*5    ; pop all reg params
+            ; pop rsi
+            ; pop rdx
+            ; pop rcx
+            ; pop r8
+            ; pop r9
+            add rsp, 8*5    ; pop all reg params
 
             push r10        ; putting ret addr in stack
             ret
@@ -56,7 +56,6 @@ _printf:
 ; DESTROYS: rax, rbx, rdi
 ;------------------------------------------------
 __printf:
-    ; mov rbp, rsp
     xor rbx, rbx            ; rbx = 0
     xor rax, rax            ; rax = 0
     mov rsi, rdi            ; rsi = rdi
@@ -69,8 +68,8 @@ __printf:
     stosb                   ; ds:[edi++] = al
     cmp al, 0
     je .buf_print
-;    cmp rdi, _printf_buf_end
-;    jae .reset_buf
+    cmp rdi, _printf_buf_end
+    jae .reset_buf
     jmp .next_symbol
 
 .reset_buf:
@@ -94,55 +93,56 @@ __printf:
     sub al, 'b'                         ; index = al - 'b'
     jmp _printf_swtch_tbl[rax * 8]      ; switch_table[index]
 
-._printf_perc:
-    mov al, '%'         ; al = '%'
-    stosb               ; ds:[edi++] = al
-    jmp .next_symbol
-
-._printf_bin:
-    mov rdx, [rbp + rbx * 8]
-    call _i2bin
-    jmp .next_symbol
-
-._printf_char:
-    mov rax, [rbp + rbx * 8]    ; char arhument
+._printf_perc:                  ; %%
+    mov al, '%'                 ; al = '%'
     stosb                       ; ds:[edi++] = al
     jmp .next_symbol
 
-._printf_dec:
-    mov rdx, [rbp + rbx * 8]
-    call _i2dec
+._printf_bin:                   ; %b
+    mov rdx, [rbp + rbx * 8]    ; argument
+    call _i2bin                 ; translate to bin
     jmp .next_symbol
 
-._printf_oct:
-    mov rdx, [rbp + rbx * 8]
-    call _i2oct
+._printf_char:                  ; %c
+    mov rax, [rbp + rbx * 8]    ; argument
+    stosb                       ; ds:[edi++] = al
     jmp .next_symbol
 
-._printf_str:
-    push rsi
+._printf_dec:                   ; %d
+    mov rdx, [rbp + rbx * 8]    ; argument
+    call _i2dec                 ; translate to dec
+    jmp .next_symbol
+
+._printf_oct:                   ; %o
+    mov rdx, [rbp + rbx * 8]    ; argument
+    call _i2oct                 ; translate to oct
+    jmp .next_symbol
+
+._printf_str:                   ; %s
+    push rsi                    ; saving rsi
     mov rsi, [rbp + rbx * 8]    ; address of string argument
     call _strlen                ; ax = strlen(str)
     mov rcx, rax                ; strlen
-    call _memcpy
-    pop rsi
+    call _memcpy                ; copying str to _printf_buf
+    pop rsi                     ; restoring rsi
     jmp .next_symbol
 
-._printf_hex:
-    mov rdx, [rbp + rbx * 8]
-    call _i2hex
+._printf_hex:                   ; %x
+    mov rdx, [rbp + rbx * 8]    ; argument
+    call _i2hex                 ; translate to hex
     jmp .next_symbol
 
-._printf_def:
-    ;sub rsi, 2
-    ;movsb
-    ;movsb
-    call _assert
+._printf_def:                   ; default
+    sub rsi, 2                  ; rsi -= 2 <-- setting rsi on %
+    movsb                       ; ds:[rdi++] = ds:[rsi++]
+    movsb                       ; ds:[rdi++] = ds:[rsi++]
+    dec rbx                     ; counter of args not increasing
+    ; call _assert
     jmp .next_symbol
 
 .buf_print:
     mov rsi, _printf_buf        ; address of buf
-    call buf_print
+    call buf_print              ; prints buffer of _printf
     ret
 ;------------------------------------------------
 
@@ -163,8 +163,8 @@ reset_buf:
 
 section .rodata                         ; section of read-obly data
 
-_printf_swtch_tbl:                          ; jump switch-table for _printf
-                                            ; '%' = 37
+_printf_swtch_tbl:                           ; jump switch-table for _printf
+                                             ; '%' = 37 <-- not in jump table
                 dq  __printf._printf_bin     ; 'b' = 98
                 dq  __printf._printf_char    ; 'c' = 99
                 dq  __printf._printf_dec     ; 'd' = 100
