@@ -78,7 +78,7 @@ _strlen:
 ;------------------------------------------------
 ; ENTRY:    rsi - address of source buffer
 ;           rdi - address of destination buffer
-;           rcx - numner of copying symbols
+;           rcx - number of copying symbols
 ; EXIT:     rdi - address of the symbol after last copied
 ; EXPECTS:  None
 ; DESTROYS: rdx, rsi

@@ -1,6 +1,7 @@
 bits    64                                  ; x86-64 processor used
-global _printf, _assert, _puts
+global _printf, _assert
 extern _puts, _memcpy, _strlen, buf_print
+extern _i2hex, _i2oct, _i2bin, _i2quat, i2dec
 
 section .text
 ;------------------------------------------------
@@ -10,7 +11,7 @@ section .text
 ;           arguments in cdecl format
 ; EXIT:     None
 ; EXPECTS:  None
-; DESTROYS: rbx
+; DESTROYS: rax, rbx, rdi, r10
 ;------------------------------------------------
 _printf:
             pop r10         ; saving ret addr
@@ -98,6 +99,10 @@ __printf:
     jmp .next_symbol
 
 ._printf_hex:
+    mov rax, rbx
+    mov rbx, [rbp + rbx * 8]
+    call _i2hex
+    mov rbx, rax
     jmp .next_symbol
 
 ._printf_def:
@@ -128,11 +133,8 @@ _printf_swtch_tbl:                          ; jump switch-table for _printf
                 dq  __printf._printf_hex     ; 'x' = 120
 
 section .bss                            ; section of non-initialized data
-
 _printf_buf_size    equ 1024            ; size of _printf buffer
 _printf_buf resb    _printf_buf_size    ; _printf buffer
-
-_printf_args_buf    resb    256         ; buffer for arguments
 
 section .text
 ;------------------------------------------------
