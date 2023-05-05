@@ -15,7 +15,7 @@
  * ``%x``  - hex format of int
  * ``%%``  - "%%"
 
-# Installing and using
+## Installing and using
 
  To call the ``_printf`` function from your C program you have to declare it as:
 
