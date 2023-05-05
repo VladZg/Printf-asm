@@ -1,0 +1,238 @@
+     1                                  bits    64                                  ; x86-64 processor instruction set used
+     2                                  global _printf, _assert
+     3                                  extern _puts, _memcpy, _strlen, buf_print
+     4                                  extern _i2hex, _i2oct, _i2bin, _i2quat, _i2dec
+     5                                  extern printf
+     6                                  
+     7                                  section .text
+     8                                  ;------------------------------------------------
+     9                                  ; _printf - simple analog of standart printf
+    10                                  ;------------------------------------------------
+    11                                  ; ENTRY:    rdi - address of format string
+    12                                  ;           arguments of printf in cdecl format
+    13                                  ; EXIT:     None
+    14                                  ; EXPECTS:  None
+    15                                  ; DESTROYS: r10
+    16                                  ;------------------------------------------------
+    17                                  _printf:
+    18 00000000 415A                                pop r10         ; saving ret addr
+    19                                  
+    20 00000002 4151                                push r9         ; saving 5 argument
+    21 00000004 4150                    	        push r8         ; saving 4 argument
+    22 00000006 51                      	        push rcx        ; saving 3 argument
+    23 00000007 52                      	        push rdx        ; saving 2 argument
+    24 00000008 56                      	        push rsi        ; saving 1 argument
+    25                                  
+    26 00000009 55                                  push rbp        ; saving other args
+    27 0000000A 4889E5                              mov rbp, rsp
+    28 0000000D 50                                  push rax
+    29 0000000E 53                                  push rbx
+    30 0000000F 57                                  push rdi
+    31                                  
+    32 00000010 E81C000000                          call __printf   ; __printf(fmt, args)
+    33                                  
+    34 00000015 5F                                  pop rdi
+    35 00000016 5B                                  pop rbx
+    36 00000017 58                                  pop rax
+    37 00000018 5D                                  pop rbp
+    38                                  
+    39 00000019 5E                                  pop rsi
+    40 0000001A 5A                                  pop rdx
+    41 0000001B 59                                  pop rcx
+    42 0000001C 4158                                pop r8
+    43 0000001E 4159                                pop r9
+    44                                  
+    45 00000020 4152                                push r10          ; putting ret addr in stack
+    46 00000022 55                                  push rbp          ;
+    47 00000023 4889E5                              mov rbp, rsp      ;
+    48 00000026 4883C508                            add rbp, 8        ;
+    49 0000002A E8(00000000)                        call printf       ; printf(fmt, msg)
+    50 0000002F 5D                                  pop rbp
+    51                                              ; add rsp, 8*5    ; restoring rsp (poping _printfs params)
+    52                                  
+    53 00000030 C3                                  ret
+    54                                  ;------------------------------------------------
+    55                                  
+    56                                  ;------------------------------------------------
+    57                                  ; __printf - simple analog of printf, but all arguments are in stack
+    58                                  ;------------------------------------------------
+    59                                  ; ENTRY:    rdi - address of format string
+    60                                  ;           stack filled with arguments
+    61                                  ; EXIT:     None
+    62                                  ; EXPECTS:  None
+    63                                  ; DESTROYS: rax, rbx, rdi
+    64                                  ;------------------------------------------------
+    65                                  __printf:
+    66 00000031 4831DB                      xor rbx, rbx            ; rbx = 0
+    67 00000034 4831C0                      xor rax, rax            ; rax = 0
+    68 00000037 4889FE                      mov rsi, rdi            ; rsi = rdi
+    69 0000003A 48BF-                       mov rdi, _printf_buf
+    69 0000003C [0000000000000000] 
+    70 00000044 FC                          cld                     ; iterator increasing mode
+    71                                  .next_symbol:
+    72 00000045 E8AE000000                  call check_for_reset
+    73 0000004A AC                          lodsb                   ; al = ds:[esi++]
+    74 0000004B 3C25                        cmp al, "%"
+    75 0000004D 7407                        je .process_arg
+    76 0000004F AA                          stosb                   ; ds:[edi++] = al
+    77 00000050 3C00                        cmp al, 0               ; al == 0
+    78 00000052 747A                        je .buf_print
+    79 00000054 EBEF                        jmp .next_symbol
+    80                                  
+    81                                  .process_arg:
+    82 00000056 AC                          lodsb                   ; al = ds:[esi++]
+    83 00000057 3C25                        cmp al, '%'             ; if (al == '%') putc('%')
+    84 00000059 7412                        je ._printf_perc
+    85                                  
+    86                                                              ; switch(al)
+    87 0000005B 3C62                        cmp al, 'b'             ; if (al < 'b') default;
+    88 0000005D 7261                        jb ._printf_def
+    89                                  
+    90 0000005F 3C78                        cmp al, 'x'             ; if (al > 'x') default;
+    91 00000061 775D                        ja ._printf_def
+    92                                  
+    93 00000063 48FFC3                      inc rbx                     ; rbx++ <-- number of that format argument
+    94                                  
+    95 00000066 FF24C5[F0FCFFFF]            jmp _printf_swtch_tbl[(rax - 'b') * 8]      ; switch_table[index]
+    96                                  
+    97                                  ._printf_perc:                  ; %%
+    98 0000006D B025                        mov al, '%'                 ; al = '%'
+    99 0000006F AA                          stosb                       ; ds:[edi++] = al
+   100 00000070 EBD3                        jmp .next_symbol
+   101                                  
+   102                                  ._printf_bin:                   ; %b
+   103 00000072 488B54DD00                  mov rdx, [rbp + rbx * 8]    ; argument
+   104 00000077 E8(00000000)                call _i2bin                 ; translate to bin
+   105 0000007C EBC7                        jmp .next_symbol
+   106                                  
+   107                                  ._printf_char:                  ; %c
+   108 0000007E 488B44DD00                  mov rax, [rbp + rbx * 8]    ; argument
+   109 00000083 AA                          stosb                       ; ds:[edi++] = al
+   110 00000084 EBBF                        jmp .next_symbol
+   111                                  
+   112                                  ._printf_dec:                   ; %d
+   113 00000086 488B54DD00                  mov rdx, [rbp + rbx * 8]    ; argument
+   114 0000008B E8(00000000)                call _i2dec                 ; translate to dec
+   115 00000090 EBB3                        jmp .next_symbol
+   116                                  
+   117                                  ._printf_oct:                   ; %o
+   118 00000092 488B54DD00                  mov rdx, [rbp + rbx * 8]    ; argument
+   119 00000097 E8(00000000)                call _i2oct                 ; translate to oct
+   120 0000009C EBA7                        jmp .next_symbol
+   121                                  
+   122                                  ._printf_str:                   ; %s
+   123 0000009E 56                          push rsi                    ; saving rsi
+   124                                      ; mov r9, _printf_buf_end
+   125                                      ; sub r9, rdi               ; length of empty _printf_buf
+   126 0000009F 488B74DD00                  mov rsi, [rbp + rbx * 8]    ; address of string argument
+   127 000000A4 E8(00000000)                call _strlen                ; ax = strlen(str)
+   128                                      ; cmp eax, r9
+   129                                      ; ja .reset_buf             ; if (ax > len) reset_buf()
+   130 000000A9 4889C1                      mov rcx, rax                ; strlen
+   131 000000AC E8(00000000)                call _memcpy                ; copying str to _printf_buf
+   132 000000B1 5E                          pop rsi                     ; restoring rsi
+   133 000000B2 EB91                        jmp .next_symbol
+   134                                  
+   135                                  ._printf_hex:                   ; %x
+   136 000000B4 488B54DD00                  mov rdx, [rbp + rbx * 8]    ; argument
+   137 000000B9 E8(00000000)                call _i2hex                 ; translate to hex
+   138 000000BE EB85                        jmp .next_symbol
+   139                                  
+   140                                  ._printf_def:                   ; default
+   141 000000C0 4883EE02                    sub rsi, 2                  ; rsi -= 2 <-- setting rsi on %
+   142 000000C4 A4                          movsb                       ; ds:[rdi++] = ds:[rsi++]
+   143 000000C5 A4                          movsb                       ; ds:[rdi++] = ds:[rsi++]
+   144 000000C6 48FFCB                      dec rbx                     ; counter of args not increasing
+   145                                      ; call _assert
+   146 000000C9 E977FFFFFF                  jmp .next_symbol
+   147                                  
+   148                                  .buf_print:
+   149 000000CE 48BE-                       mov rsi, _printf_buf        ; address of buf
+   149 000000D0 [0000000000000000] 
+   150 000000D8 E8(00000000)                call buf_print              ; prints buffer of _printf
+   151 000000DD C3                          ret
+   152                                  ;------------------------------------------------
+   153                                  
+   154                                  ;------------------------------------------------
+   155                                  ; reset_buf - prints _printf buffer and reset it
+   156                                  ;------------------------------------------------
+   157                                  ; ENTRY:    rdi - address of the end of buf
+   158                                  ; EXIT:     rdi - address of the _printf_buf
+   159                                  ; EXPECTS:  None
+   160                                  ; DESTROYS: rax, rsi, rdi
+   161                                  ;------------------------------------------------
+   162                                  reset_buf:
+   163 000000DE 48BE-                       mov rsi, _printf_buf
+   163 000000E0 [0000000000000000] 
+   164 000000E8 E8(00000000)                call buf_print
+   165 000000ED 48BF-                       mov rdi, _printf_buf
+   165 000000EF [0000000000000000] 
+   166 000000F7 C3                          ret
+   167                                  ;------------------------------------------------
+   168                                  
+   169                                  ;------------------------------------------------
+   170                                  ; ceck_for_reset - prints _printf buffer and reset it
+   171                                  ;------------------------------------------------
+   172                                  ; ENTRY:    rdi - address of the end of buf
+   173                                  ; EXIT:     rdi - address of the _printf_buf
+   174                                  ; EXPECTS:  None
+   175                                  ; DESTROYS: rax, rsi, rdi
+   176                                  ;------------------------------------------------
+   177                                  check_for_reset:
+   178                                  ;    mov rsi, _printf_buf
+   179                                  ;    call buf_print
+   180                                  ;    mov rdi, _printf_buf
+   181 000000F8 C3                          ret
+   182                                  ;------------------------------------------------
+   183                                  
+   184                                  section .rodata                         ; section of read-obly data
+   185                                  
+   186                                  _printf_swtch_tbl:                           ; jump switch-table for _printf
+   187                                                                               ; '%' = 37 <-- not in jump table
+   188 00000000 [7200000000000000]                      dq  __printf._printf_bin     ; 'b' = 98
+   189 00000008 [7E00000000000000]                      dq  __printf._printf_char    ; 'c' = 99
+   190 00000010 [8600000000000000]                      dq  __printf._printf_dec     ; 'd' = 100
+   191 00000018 [C000000000000000]-         times  (10) dq  __printf._printf_def     ; default case (x10)
+   191 00000018 <rep Ah>           
+   192 00000068 [9200000000000000]                      dq  __printf._printf_oct     ; 'o' = 111
+   193 00000070 [C000000000000000]-         times  (3)  dq  __printf._printf_def     ; default case (x3)
+   193 00000070 <rep 3h>           
+   194 00000088 [9E00000000000000]                      dq  __printf._printf_str     ; 's' = 115
+   195 00000090 [C000000000000000]-         times  (4)  dq  __printf._printf_def     ; default case (x4)
+   195 00000090 <rep 4h>           
+   196 000000B0 [B400000000000000]                      dq  __printf._printf_hex     ; 'x' = 120
+   197                                  
+   198                                  section .bss                            ; section of non-initialized data
+   199                                  _printf_buf_size    equ 1024            ; size of _printf buffer
+   200 00000000 <res 400h>              _printf_buf resb    _printf_buf_size    ; _printf buffer
+   201                                  _printf_buf_end     equ $ - 20
+   202                                  
+   203                                  section .text
+   204                                  ;------------------------------------------------
+   205                                  _assert:
+   206 000000F9 50                              push rax
+   207 000000FA 57                              push rdi
+   208 000000FB 56                              push rsi
+   209 000000FC 52                              push rdx
+   210                                  
+   211 000000FD B801000000                      mov rax, 0x01
+   212 00000102 BF01000000                      mov rdi, 1
+   213 00000107 48BE-                           mov rsi, ass_msg
+   213 00000109 [B800000000000000] 
+   214 00000111 BA30000000                      mov rdx, ass_msg_len
+   215 00000116 0F05                            syscall
+   216                                  
+   217 00000118 5A                              pop rdx
+   218 00000119 5E                              pop rsi
+   219 0000011A 5F                              pop rdi
+   220 0000011B 58                              pop rax
+   221 0000011C C3                              ret
+   222                                  ;------------------------------------------------
+   223                                  section .rodata   ; assert read-only data
+   224 000000B8 617373657274206D65-     ass_msg:        db  "assert message... something is wrong, isn't it?", 0x0A
+   224 000000C1 73736167652E2E2E20-
+   224 000000CA 736F6D657468696E67-
+   224 000000D3 2069732077726F6E67-
+   224 000000DC 2C2069736E27742069-
+   224 000000E5 743F0A             
+   225                                  ass_msg_len:    equ $ - ass_msg

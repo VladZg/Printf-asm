@@ -1,0 +1,58 @@
+     1                                  extern  printf, _printf, _assert, puts, _puts
+     2                                  global main
+     3                                  
+     4                                  section .text
+     5                                  
+     6 00000000 55                      main:   push rbp                ;
+     7 00000001 4889E5                          mov rbp, rsp            ;
+     8 00000004 41B987090000                    mov r9d, oct_num        ;
+     9 0000000A 41B8E4F8FFFF            	mov r8d, dec_pos_num    ;
+    10 00000010 B99B0F0000                      mov rcx, hex_num        ;
+    11 00000015 48BF-                           mov rdi, fmt            ;
+    11 00000017 [0000000000000000] 
+    12 0000001F BE73000000                      mov rsi, 's'            ;
+    13 00000024 48BA-                           mov rdx, orig_msg       ;
+    13 00000026 [1500000000000000] 
+    14 0000002E 31C0                            xor eax, eax            ;
+    15 00000030 E8(00000000)                    call printf             ; printf(fmt, msg)
+    16 00000035 5D                              pop rbp
+    17                                  
+    18 00000036 55                              push rbp                ;
+    19 00000037 4889E5                          mov rbp, rsp            ;
+    20 0000003A 41B987090000                    mov r9d, oct_num        ;
+    21 00000040 41B8E4F8FFFF            	mov r8d, dec_pos_num    ;
+    22 00000046 B99B0F0000                      mov rcx, hex_num        ;
+    23 0000004B 48BF-                           mov rdi, fmt            ;
+    23 0000004D [0000000000000000] 
+    24 00000055 BE73000000                      mov rsi, 's'            ;
+    25 0000005A 48BA-                           mov rdx, own_msg        ;
+    25 0000005C [2900000000000000] 
+    26 00000064 E8(00000000)                    call _printf            ; _printf(fmt, msg)
+    27 00000069 5D                              pop rbp
+    28                                  
+    29                                          ; call _assert
+    30                                  
+    31 0000006A 31C0                            xor eax, eax            ; rax = 0
+    32 0000006C C3                              ret                     ; exit(0)
+    33                                  
+    34                                  section .data
+    35                                  
+    36 00000000 25636F736174202573-     fmt:            db      "%cosat %s %x %d %o!", 10, 0
+    36 00000009 20257820256420256F-
+    36 00000012 210A00             
+    37 00000015 207072696E74662074-     orig_msg:       db      " printf test on asm", 0
+    37 0000001E 657374206F6E206173-
+    37 00000027 6D00               
+    38 00000029 5F7072696E74662074-     own_msg:        db      "_printf test on asm", 0
+    38 00000032 657374206F6E206173-
+    38 0000003B 6D00               
+    39 0000003D 737472696E6720666F-     puts_str:       db      "string for puts", 0
+    39 00000046 72207075747300     
+    40 0000004D 737472696E6720666F-     _puts_str:      db      "string for _puts", 0
+    40 00000056 72205F7075747300   
+    41 0000005E 6E616B6F6E6563746F-     str:            db      "nakonecto stroka...", 0
+    41 00000067 207374726F6B612E2E-
+    41 00000070 2E00               
+    42                                  hex_num         equ     0xF9B
+    43                                  oct_num         equ     2439
+    44                                  dec_pos_num     equ     -1820

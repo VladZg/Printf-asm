@@ -1,0 +1,126 @@
+     1                                  bits    64                                                  ; x86-64 processor used
+     2                                  global _puts, _memcpy, _strlen, buf_print, _memcpy_reversed
+     3                                  
+     4                                  section .text
+     5                                  ;------------------------------------------------
+     6                                  ; _puts - prints buffer of printf function in stdout
+     7                                  ;------------------------------------------------
+     8                                  ; ENTRY:    rdi - address of string
+     9                                  ; EXIT:     None
+    10                                  ; EXPECTS:  None
+    11                                  ; DESTROYS: rax, rbx, rdi
+    12                                  ;------------------------------------------------
+    13                                  _puts:
+    14 00000000 4889FE                      mov rsi, rdi            ; rsi = rdi
+    15 00000003 48BF-                       mov rdi, _puts_buf
+    15 00000005 [0000000000000000] 
+    16 0000000D FC                          cld                     ; iterator increasing mode
+    17                                  .next_symbol:
+    18 0000000E AC                          lodsb                   ; al = ds:[esi++]
+    19 0000000F 3C00                        cmp al, 0               ; al == 0
+    20 00000011 7403                        je .buf_print
+    21 00000013 AA                          stosb                   ; ds:[edi++] = al
+    22 00000014 EBF8                        jmp .next_symbol
+    23                                  
+    24                                  .buf_print:
+    25 00000016 B00A                        mov al, 10                  ; al = '\n'
+    26 00000018 AA                          stosb                       ; ds:[edi++] = al
+    27 00000019 B000                        mov al, 0                   ; al = '\0'
+    28 0000001B AA                          stosb                       ; ds:[edi++] = al
+    29 0000001C 48BE-                       mov rsi, _puts_buf          ; address of buf
+    29 0000001E [0000000000000000] 
+    30 00000026 E801000000                  call buf_print
+    31 0000002B C3                          ret
+    32                                  ;------------------------------------------------
+    33                                  
+    34                                  ;------------------------------------------------
+    35                                  ; buf_print - prints buffer of printf function in stdout
+    36                                  ;------------------------------------------------
+    37                                  ; ENTRY:    rsi - address of buffer to print
+    38                                  ;           rdi - address of last symbol of buffer
+    39                                  ; EXIT:     None
+    40                                  ; EXPECTS:  None
+    41                                  ; DESTROYS: rax, rsi, rdi
+    42                                  ;------------------------------------------------
+    43                                  buf_print:
+    44 0000002C B801000000                  mov rax, 0x01   ; fprintf function of syscall
+    45 00000031 4889FA                      mov rdx, rdi
+    46 00000034 4829F2                      sub rdx, rsi    ; length of buf
+    47 00000037 BF01000000                  mov rdi, 1      ; stdout stream of output
+    48 0000003C 0F05                        syscall
+    49 0000003E C3                          ret
+    50                                  ;------------------------------------------------
+    51                                  
+    52                                  ;------------------------------------------------
+    53                                  ; _strlen - strlen C analog, counts length of a string
+    54                                  ;------------------------------------------------
+    55                                  ; ENTRY:    rsi - address of string buffer
+    56                                  ; EXIT:     rax - string length
+    57                                  ; EXPECTS:  None
+    58                                  ; DESTROYS: rax
+    59                                  ;------------------------------------------------
+    60                                  _strlen:
+    61 0000003F 56                          push rsi
+    62                                  
+    63                                  .next_symbol:
+    64 00000040 803E00                      cmp byte [rsi], 0   ; str[i] == 0
+    65 00000043 7405                        je .exit_strlen
+    66 00000045 48FFC6                      inc rsi
+    67 00000048 EBF6                        jmp .next_symbol
+    68                                  
+    69                                  .exit_strlen:
+    70 0000004A 4889F0                      mov rax, rsi
+    71 0000004D 5E                          pop rsi
+    72 0000004E 4829F0                      sub rax, rsi
+    73 00000051 C3                      	ret
+    74                                  ;------------------------------------------------
+    75                                  
+    76                                  ;------------------------------------------------
+    77                                  ; _memcpy - memcpy C analog, copies from source to dest
+    78                                  ;------------------------------------------------
+    79                                  ; ENTRY:    rsi - address of source buffer
+    80                                  ;           rdi - address of destination buffer
+    81                                  ;           rcx - number of copying symbols
+    82                                  ; EXIT:     rdi - address of the symbol after last copied
+    83                                  ; EXPECTS:  None
+    84                                  ; DESTROYS: rdx, rsi
+    85                                  ;------------------------------------------------
+    86                                  _memcpy:
+    87 00000052 4883F900                	cmp rcx, 0
+    88 00000056 7603                    	jbe .exit_memcpy
+    89                                  
+    90                                  .next_symbol:           ; while (rcx--) {
+    91 00000058 A4                          movsb               ; ds:[edi++] = ds:[esi++]
+    92 00000059 E2FD                        loop .next_symbol   ; }
+    93                                  
+    94                                  .exit_memcpy:
+    95 0000005B C3                      	ret
+    96                                  ;------------------------------------------------
+    97                                  
+    98                                  ;------------------------------------------------
+    99                                  ; _memcpy_reversed - reversed memcpy, copies from reversed source to dest
+   100                                  ;------------------------------------------------
+   101                                  ; ENTRY:    rsi - address of the end of source buffer
+   102                                  ;           rdi - address of destination buffer
+   103                                  ;           rcx - number of copying symbols
+   104                                  ; EXIT:     rdi - address of the symbol after last copied
+   105                                  ; EXPECTS:  None
+   106                                  ; DESTROYS: rdx, rsi
+   107                                  ;------------------------------------------------
+   108                                  _memcpy_reversed:
+   109 0000005C 4883F900                	cmp rcx, 0
+   110 00000060 7607                    	jbe .exit_memcpy_reversed
+   111                                  
+   112                                  .next_symbol:           ; while (rcx--) {
+   113 00000062 A4                          movsb               ; ds:[edi++] = ds:[esi++]
+   114 00000063 4883EE02                    sub rsi, 2          ; rsi -= 2 (reversed order)
+   115 00000067 E2F9                        loop .next_symbol   ; }
+   116                                  
+   117                                  .exit_memcpy_reversed:
+   118 00000069 C3                      	ret
+   119                                  ;------------------------------------------------
+   120                                  
+   121                                  section .bss    ; not-initialized data
+   122                                  
+   123                                  _puts_buf_size          equ 1024
+   124 00000000 <res 400h>              _puts_buf       resb    _puts_buf_size

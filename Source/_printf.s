@@ -42,11 +42,11 @@ _printf:
             pop r8
             pop r9
 
-            push r10                ; putting ret addr in stack
-            push rbp                ;
-            mov rbp, rsp            ;
-            add rbp, 8              ;
-            call printf             ; printf(fmt, msg)
+            push r10          ; putting ret addr in stack
+            push rbp          ;
+            mov rbp, rsp      ;
+            add rbp, 8        ;
+            call printf       ; printf(fmt, msg)
             pop rbp
             ; add rsp, 8*5    ; restoring rsp (poping _printfs params)
 
@@ -69,18 +69,13 @@ __printf:
     mov rdi, _printf_buf
     cld                     ; iterator increasing mode
 .next_symbol:
+    call check_for_reset
     lodsb                   ; al = ds:[esi++]
     cmp al, "%"
     je .process_arg
     stosb                   ; ds:[edi++] = al
     cmp al, 0               ; al == 0
     je .buf_print
-;    cmp rdi, _printf_buf_end
-;    jae .reset_buf
-    jmp .next_symbol
-
-.reset_buf:
-    call reset_buf
     jmp .next_symbol
 
 .process_arg:
@@ -168,6 +163,21 @@ reset_buf:
     mov rsi, _printf_buf
     call buf_print
     mov rdi, _printf_buf
+    ret
+;------------------------------------------------
+
+;------------------------------------------------
+; ceck_for_reset - prints _printf buffer and reset it
+;------------------------------------------------
+; ENTRY:    rdi - address of the end of buf
+; EXIT:     rdi - address of the _printf_buf
+; EXPECTS:  None
+; DESTROYS: rax, rsi, rdi
+;------------------------------------------------
+check_for_reset:
+;    mov rsi, _printf_buf
+;    call buf_print
+;    mov rdi, _printf_buf
     ret
 ;------------------------------------------------
 
